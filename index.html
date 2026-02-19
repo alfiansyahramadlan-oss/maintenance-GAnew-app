@@ -334,23 +334,15 @@
             <h2>MONITORING ME & BUILDING</h2>
         </div>
 
-        <div class="card">
-            <h3>Identifikasi Masalah</h3>
-            <label>Subjek / Kerusakan</label>
-            <input type="text" id="masalah" placeholder="Misal: AC Ruang GA bocor">
-            
-            <label>Tim & Pekerja</label>
-            <div style="display: flex; gap: 10px;">
-                <select id="tim" onchange="updatePekerja()" style="flex:1">
-                    <option value="">-- Tim --</option>
-                    <option value="ME">ME</option>
-                    <option value="BUILDING">BUILDING</option>
-                </select>
-                <select id="nama" style="flex:1.5">
-                    <option value="">-- Pilih Nama --</option>
-                </select>
-            </div>
+<div class="card">
+    <h3>Identifikasi Masalah</h3>
+    <label>Subjek / Kerusakan</label>
+    <input type="text" id="masalah" placeholder="Misal: AC Ruang GA bocor">
+    
+    <label>Pilih Pekerja (Bisa centang lebih dari satu)</label>
+    <div id="pekerja-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #f9f9f9; padding: 12px; border-radius: 8px; border: 1px solid #eee; max-height: 200px; overflow-y: auto;">
         </div>
+</div>
 
         <div class="card">
             <h3>Observasi Lapangan</h3>
@@ -521,12 +513,32 @@
         if(id === 'request') renderRequests();
     }
 
-    function updatePekerja() {
-        const tim = document.getElementById('tim').value;
-        const n = document.getElementById('nama');
-        n.innerHTML = '<option value="">-- Pilih Nama --</option>';
-        if(tim) timData[tim].forEach(p => n.innerHTML += `<option value="${p}">${p}</option>`);
-    }
+// Fungsi untuk memuat semua daftar pekerja dengan checkbox
+function initPekerjaCheckboxes() {
+    const container = document.getElementById('pekerja-container');
+    container.innerHTML = ""; // Bersihkan container
+
+    // Loop untuk ME
+    container.innerHTML += `<div style="grid-column: span 2; font-weight: 800; font-size: 0.7rem; color: var(--meratus-navy); margin-top: 5px; border-bottom: 1px solid #ddd;">TIM ME</div>`;
+    timData["ME"].forEach(p => {
+        container.innerHTML += `
+            <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; margin-bottom: 0;">
+                <input type="checkbox" name="pekerja-select" value="${p} (ME)" style="width: auto; margin: 0;"> ${p}
+            </label>`;
+    });
+
+    // Loop untuk BUILDING
+    container.innerHTML += `<div style="grid-column: span 2; font-weight: 800; font-size: 0.7rem; color: var(--meratus-red); margin-top: 10px; border-bottom: 1px solid #ddd;">TIM BUILDING</div>`;
+    timData["BUILDING"].forEach(p => {
+        container.innerHTML += `
+            <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; margin-bottom: 0;">
+                <input type="checkbox" name="pekerja-select" value="${p} (BUILDING)" style="width: auto; margin: 0;"> ${p}
+            </label>`;
+    });
+}
+
+// Panggil fungsi ini di paling bawah script (Initial Load)
+initPekerjaCheckboxes();
 
     // --- FUNGSI KOMPRESI GAMBAR ---
     function processImage(input, targetId) {
@@ -581,35 +593,38 @@
     }
 
     async function submitTask(status) {
-        const m = document.getElementById('masalah').value;
-        const tim = document.getElementById('tim').value;
-        const n = document.getElementById('nama').value;
-        if(!m || !n || !tim) return alert("Lengkapi data!");
+    const m = document.getElementById('masalah').value;
+    
+    // Ambil semua pekerja yang dicentang
+    const selectedPekerja = Array.from(document.querySelectorAll('input[name="pekerja-select"]:checked'))
+                                 .map(cb => cb.value);
 
-        const now = new Date();
-        const newTask = {
-            id: Date.now(),
-            masalah: m,
-            pekerja: n + " (" + tim + ")",
-            status: status,
-            riwayat: currentLogs,
-            fotoCek: base64Cek,
-            fotoSelesai: "",
-            waktuInput: now.toISOString(),
-            waktuMulai: status === 'In Progress' ? now.toISOString() : null,
-            waktuSelesai: null,
-            keteranganSelesai: "" 
-        };
+    if(!m || selectedPekerja.length === 0) return alert("Lengkapi data dan pilih minimal 1 pekerja!");
 
-        const { error } = await _supabase.from('maintenance_logs').insert([newTask]);
+    const now = new Date();
+    const newTask = {
+        id: Date.now(),
+        masalah: m,
+        pekerja: selectedPekerja.join(", "), // Gabungkan nama dengan koma
+        status: status,
+        riwayat: currentLogs,
+        "fotoCek": base64Cek,
+        "fotoSelesai": "",
+        "waktuInput": now.toISOString(),
+        "waktuMulai": status === 'In Progress' ? now.toISOString() : null,
+        waktuSelesai: null,
+        keteranganSelesai: "" 
+    };
 
-        if(error) {
-            alert("Gagal simpan: " + error.message);
-        } else {
-            alert("Data berhasil dikirim ke Cloud!");
-            location.reload();
-        }
+    const { error } = await _supabase.from('maintenance_logs').insert([newTask]);
+
+    if(error) {
+        alert("Gagal simpan: " + error.message);
+    } else {
+        alert("Data berhasil dikirim ke Cloud!");
+        location.reload();
     }
+}
 
     function calculateDuration(start, end) {
         if(!start || !end) return "-";
@@ -921,6 +936,7 @@ async function importData(event) {
 </body>
 
 </html>
+
 
 
 
