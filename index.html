@@ -371,19 +371,11 @@
     </div>
 
     <div id="tab-dashboard" class="tab-content">
-<div style="margin-bottom: 10px; font-weight: 800; font-size: 0.75rem; color: var(--meratus-navy); border-left: 3px solid var(--accent); padding-left: 8px;">TIM ME</div>
-<div class="stats-grid" style="margin-bottom: 15px;">
-    <div class="stat-card"><h4>Pending</h4><p id="stat-me-pending">0</p></div>
-    <div class="stat-card"><h4>Progress</h4><p id="stat-me-progress">0</p></div>
-    <div class="stat-card"><h4>Selesai</h4><p id="stat-me-done">0</p></div>
-</div>
-
-<div style="margin-bottom: 10px; font-weight: 800; font-size: 0.75rem; color: var(--meratus-navy); border-left: 3px solid var(--meratus-red); padding-left: 8px;">TIM BUILDING</div>
-<div class="stats-grid">
-    <div class="stat-card"><h4>Pending</h4><p id="stat-bld-pending">0</p></div>
-    <div class="stat-card"><h4>Progress</h4><p id="stat-bld-progress">0</p></div>
-    <div class="stat-card"><h4>Selesai</h4><p id="stat-bld-done">0</p></div>
-</div>
+        <div class="stats-grid" id="statsContainer">
+            <div class="stat-card"><h4>Pending</h4><p id="stat-pending">0</p></div>
+            <div class="stat-card"><h4>Progress</h4><p id="stat-progress">0</p></div>
+            <div class="stat-card"><h4>Selesai</h4><p id="stat-done">0</p></div>
+        </div>
 
         <div class="search-container">
             <input type="text" class="search-input" id="searchInput" placeholder="Cari laporan atau nama pekerja..." onkeyup="renderDashboard()">
@@ -929,6 +921,7 @@ async function importData(event) {
 </body>
 
 </html>
+
 
 
 
