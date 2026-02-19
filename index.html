@@ -432,7 +432,7 @@
 </nav>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-    const timData = { "ME": ["Heru", "Heri", "Dayat", "Bedjo", "Ribut"], "BUILDING": ["Mustaman", "Jamzadi", "Kartono", "Yoyok", "Kasnadi", "Sukandar"] };
+    const timData = { "ME": ["Heru", "Bedjo", "Dayat", "Heri", "Ribut"], "BUILDING": ["Mustaman", "Jamzadi", "Kasnadi", "Yoyok", "Sukandar", "Kartono"] };
     
     // --- KONFIGURASI SUPABASE ---
     const SUPABASE_URL = 'https://wzryigxmzebgzobungfq.supabase.co'; 
@@ -772,26 +772,50 @@
         w.document.write(`<body style="margin:0; background:#000; display:flex; align-items:center; justify-content:center;"><img src="${base64}" style="max-width:100%; max-height:100vh;"></body>`);
     }
 
-    async function exportToExcel() {
-        const { data: db } = await _supabase.from('maintenance_logs').select('*').order('waktuInput', { ascending: false });
-        if(!db || db.length === 0) return alert("Data kosong!");
-        
-        const wsData = db.map((t, i) => ({
+async function exportToExcel() {
+    const { data: db, error } = await _supabase.from('maintenance_logs').select('*').order('waktuInput', { ascending: false });
+    
+    if (error || !db || db.length === 0) return alert("Data kosong atau gagal mengambil data!");
+    
+    const wsData = db.map((t, i) => {
+        // Menggabungkan riwayat temuan menjadi satu string dengan baris baru agar rapi di Excel
+        const detailTemuan = t.riwayat && t.riwayat.length > 0 
+            ? t.riwayat.map(r => `${r.time}: ${r.note}`).join("\n") 
+            : "-";
+
+        return {
             "No": i + 1,
             "Masalah": t.masalah,
+            "Detail Temuan": detailTemuan, // Kolom detail temuan baru
             "Pekerja": t.pekerja,
             "Status": t.status,
             "Mulai": t.waktuMulai ? new Date(t.waktuMulai).toLocaleString('id-ID') : "-",
             "Selesai": t.waktuSelesai ? new Date(t.waktuSelesai).toLocaleString('id-ID') : "-",
             "Durasi": calculateDuration(t.waktuMulai, t.waktuSelesai),
             "Keterangan": t.keteranganSelesai || "-"
-        }));
+        };
+    });
 
-        const ws = XLSX.utils.json_to_sheet(wsData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Laporan");
-        XLSX.writeFile(wb, `Laporan_Maintenance_${Date.now()}.xlsx`);
-    }
+    const ws = XLSX.utils.json_to_sheet(wsData);
+
+    // Mengatur lebar kolom agar Detail Temuan tidak terpotong
+    const wscols = [
+        {wch: 5},  // No
+        {wch: 30}, // Masalah
+        {wch: 50}, // Detail Temuan (Lebih lebar)
+        {wch: 25}, // Pekerja
+        {wch: 15}, // Status
+        {wch: 20}, // Mulai
+        {wch: 20}, // Selesai
+        {wch: 15}, // Durasi
+        {wch: 30}  // Keterangan
+    ];
+    ws['!cols'] = wscols;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Laporan Maintenance");
+    XLSX.writeFile(wb, `Laporan_Lengkap_Maintenance_${Date.now()}.xlsx`);
+}
 
     setInterval(() => {
         const clockEl = document.getElementById('realtime-clock');
@@ -807,45 +831,55 @@ async function exportToPDF() {
     if (error || !db || db.length === 0) return alert("Data kosong atau gagal mengambil data!");
 
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('l', 'mm', 'a4'); // Format Landscape agar kolom muat
+    const doc = new jsPDF('l', 'mm', 'a4'); 
 
-    // Judul Laporan
     doc.setFontSize(16);
     doc.text("LAPORAN MAINTENANCE GA - MERATUS", 14, 15);
     doc.setFontSize(10);
     doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 14, 22);
 
-    // Menyiapkan Data Tabel (Disamakan dengan kolom Excel)
-    const tableColumn = ["No", "Masalah", "Pekerja", "Status", "Mulai", "Selesai", "Durasi", "Keterangan"];
-    const tableRows = db.map((t, i) => [
-        i + 1,
-        t.masalah,
-        t.pekerja,
-        t.status,
-        t.waktuMulai ? new Date(t.waktuMulai).toLocaleString('id-ID') : "-",
-        t.waktuSelesai ? new Date(t.waktuSelesai).toLocaleString('id-ID') : "-",
-        calculateDuration(t.waktuMulai, t.waktuSelesai),
-        t.keteranganSelesai || "-"
-    ]);
+    // Menyiapkan Data Tabel dengan Kolom Detail Temuan
+    const tableColumn = ["No", "Masalah", "Detail Temuan", "Pekerja", "Status", "Mulai", "Selesai", "Durasi", "Keterangan"];
+    
+    const tableRows = db.map((t, i) => {
+        // Menggabungkan riwayat temuan menjadi teks berbaris
+        const detailTemuan = t.riwayat && t.riwayat.length > 0 
+            ? t.riwayat.map(r => `${r.time}: ${r.note}`).join("\n") 
+            : "-";
 
-    // Membuat Tabel PDF
+        return [
+            i + 1,
+            t.masalah,
+            detailTemuan, // Data Detail Temuan baru
+            t.pekerja,
+            t.status,
+            t.waktuMulai ? new Date(t.waktuMulai).toLocaleString('id-ID') : "-",
+            t.waktuSelesai ? new Date(t.waktuSelesai).toLocaleString('id-ID') : "-",
+            calculateDuration(t.waktuMulai, t.waktuSelesai),
+            t.keteranganSelesai || "-"
+        ];
+    });
+
     doc.autoTable({
         head: [tableColumn],
         body: tableRows,
         startY: 30,
         theme: 'grid',
-        headStyles: { fillColor: [26, 58, 90], textColor: [255, 255, 255] }, // Warna Navy khas Meratus
-        styles: { fontSize: 8 },
+        headStyles: { fillColor: [26, 58, 90], textColor: [255, 255, 255] },
+        styles: { fontSize: 7, cellPadding: 2, overflow: 'linebreak' }, // Ukuran font diperkecil agar muat
         columnStyles: {
-            0: { cellWidth: 10 },
-            1: { cellWidth: 50 },
-            7: { cellWidth: 40 }
+            0: { cellWidth: 8 },
+            1: { cellWidth: 35 },
+            2: { cellWidth: 50 }, // Lebar kolom Detail Temuan
+            3: { cellWidth: 30 },
+            8: { cellWidth: 30 }
         }
     });
 
-    doc.save(`Laporan_Maintenance_${Date.now()}.pdf`);
+    doc.save(`Laporan_Lengkap_Maintenance_${Date.now()}.pdf`);
 }
 </script>
 </body>
 
 </html>
+
