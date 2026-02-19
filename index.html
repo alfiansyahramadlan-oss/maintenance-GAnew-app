@@ -384,7 +384,6 @@
         <div class="tools">
             <button class="btn-tool" onclick="exportToExcel()">📊 Export Excel</button>
             <button class="btn-tool" onclick="exportToPDF()">📕 Export PDF</button>
-            <button class="btn-tool" onclick="exportData()">💾 Backup JSON</button>
             <button class="btn-tool" onclick="document.getElementById('importFile').click()">📂 Import</button>
             <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
         </div>
@@ -802,7 +801,51 @@
     // Initial Load
     renderRequests();
     renderDashboard();
+async function exportToPDF() {
+    const { data: db, error } = await _supabase.from('maintenance_logs').select('*').order('waktuInput', { ascending: false });
+    
+    if (error || !db || db.length === 0) return alert("Data kosong atau gagal mengambil data!");
 
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l', 'mm', 'a4'); // Format Landscape agar kolom muat
+
+    // Judul Laporan
+    doc.setFontSize(16);
+    doc.text("LAPORAN MAINTENANCE GA - MERATUS", 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 14, 22);
+
+    // Menyiapkan Data Tabel (Disamakan dengan kolom Excel)
+    const tableColumn = ["No", "Masalah", "Pekerja", "Status", "Mulai", "Selesai", "Durasi", "Keterangan"];
+    const tableRows = db.map((t, i) => [
+        i + 1,
+        t.masalah,
+        t.pekerja,
+        t.status,
+        t.waktuMulai ? new Date(t.waktuMulai).toLocaleString('id-ID') : "-",
+        t.waktuSelesai ? new Date(t.waktuSelesai).toLocaleString('id-ID') : "-",
+        calculateDuration(t.waktuMulai, t.waktuSelesai),
+        t.keteranganSelesai || "-"
+    ]);
+
+    // Membuat Tabel PDF
+    doc.autoTable({
+        head: [tableColumn],
+        body: tableRows,
+        startY: 30,
+        theme: 'grid',
+        headStyles: { fillColor: [26, 58, 90], textColor: [255, 255, 255] }, // Warna Navy khas Meratus
+        styles: { fontSize: 8 },
+        columnStyles: {
+            0: { cellWidth: 10 },
+            1: { cellWidth: 50 },
+            7: { cellWidth: 40 }
+        }
+    });
+
+    doc.save(`Laporan_Maintenance_${Date.now()}.pdf`);
+}
 </script>
 </body>
+
 </html>
