@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meratus Maintenance Mobile</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        :root {
+            --meratus-navy: #1a3a5a;
+            --meratus-red: #e74c3c;
+            --meratus-gray: #f4f7f9;
+            --accent: #3498db;
+            --success: #27ae60;
+            --warning: #f39c12;
+        }
+/* --- Tambahan Header GA --- */
+.ga-header {
+    background: linear-gradient(rgba(26, 58, 90, 0.95), rgba(26, 58, 90, 0.95)), 
+                url('https://www.meratusline.com/assets/images/bg/bg-1.jpg');
+    background-size: cover;
+    background-position: center;
+    color: white;
+    padding: 25px 20px;
+    text-align: center;
+    border-bottom: 4px solid var(--meratus-red);
+}
+.ga-header h1 {
+    margin: 0;
+    font-size: 1.4rem;
+    letter-spacing: 2px;
+    font-weight: 800;
+}
+.ga-header p {
+    margin: 5px 0 0 0;
+    font-size: 0.8rem;
+    opacity: 0.8;
+    font-weight: 400;
+}
+/* -------------------------- */
+        
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            margin: 0; 
+            background-color: var(--meratus-gray); 
+            color: #333; 
+            padding-bottom: 80px;
+        }
+
+        /* Navbar */
+        .navbar { 
+            background: white; 
+            padding: 12px 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            position: sticky; 
+            top: 0; 
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-top: 4px solid var(--meratus-red);
+        }
+        .logo-text { font-weight: 900; font-size: 20px; color: var(--meratus-navy); letter-spacing: -1px; }
+        .logo-text span { color: var(--meratus-red); }
+
+        .container { padding: 15px; max-width: 600px; margin: auto; }
+
+        /* Dashboard Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .stat-card h4 { margin: 0; font-size: 0.7rem; color: #888; text-transform: uppercase; }
+        .stat-card p { margin: 5px 0 0 0; font-size: 1.2rem; font-weight: bold; color: var(--meratus-navy); }
+
+        /* Search Bar */
+        .search-container { margin-bottom: 15px; }
+        .search-input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 25px;
+            border: 1px solid #ddd;
+            box-sizing: border-box;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+        }
+
+        /* Profile Card */
+        .user-card { 
+            background: linear-gradient(135deg, var(--meratus-navy) 0%, #2c527a 100%);
+            color: white; 
+            padding: 20px; 
+            border-radius: 15px; 
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(26, 58, 90, 0.2);
+        }
+        .user-card h2 { margin: 0; font-size: 1.2rem; letter-spacing: 0.5px; }
+        .user-card p { margin: 5px 0 0 0; font-size: 0.8rem; opacity: 0.9; text-transform: uppercase; font-weight: 600; }
+
+        /* Tabs Logic */
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Card Style */
+        .card { 
+            background: white; 
+            padding: 18px; 
+            border-radius: 12px; 
+            margin-bottom: 15px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); 
+        }
+        h3 { margin: 0 0 15px 0; font-size: 1rem; color: var(--meratus-navy); border-left: 4px solid var(--meratus-red); padding-left: 12px; }
+
+        /* Form elements */
+        label { display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 6px; color: #555; }
+        input, select, textarea { 
+            width: 100%; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; 
+            margin-bottom: 15px; font-size: 0.9rem; box-sizing: border-box; outline: none; transition: 0.2s;
+        }
+
+        .btn { 
+            padding: 14px; border: none; border-radius: 8px; cursor: pointer; 
+            font-weight: bold; width: 100%; transition: 0.2s; font-size: 0.9rem;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-check { background: var(--meratus-navy); color: white; }
+        .btn-pending { background: var(--warning); color: white; }
+        .btn-start { background: var(--success); color: white; }
+        .btn-finish { background: var(--meratus-red); color: white; }
+
+        /* Image Preview */
+        .img-preview { 
+            width: 100%; max-height: 200px; object-fit: cover; 
+            border-radius: 8px; margin-bottom: 15px; display: none; border: 2px dashed #ddd;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: white; display: flex; border-top: 1px solid #eee;
+            padding: 12px 0; box-shadow: 0 -4px 15px rgba(0,0,0,0.05); z-index: 1000;
+        }
+        .nav-item {
+            flex: 1; text-align: center; font-size: 0.75rem; color: #a0a0a0;
+            cursor: pointer; display: flex; flex-direction: column; align-items: center; transition: 0.2s;
+        }
+        .nav-item.active { color: var(--meratus-red); font-weight: 700; }
+        .nav-icon { font-size: 1.4rem; margin-bottom: 4px; }
+
+        /* Dashboard Items */
+        .data-item {
+            background: #fff; border: 1px solid #f0f0f0; border-radius: 10px;
+            padding: 15px; margin-bottom: 12px; position: relative;
+        }
+        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; }
+        .badge-pending { background: #fff7e6; color: #fa8c16; border: 1px solid #ffd591; }
+        .badge-progress { background: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; }
+        .badge-done { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+
+        .tools { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .btn-tool { 
+            padding: 10px; font-size: 0.75rem; background: white; border: 1px solid #ddd; 
+            border-radius: 8px; color: var(--meratus-navy); font-weight: 600; cursor: pointer;
+        }
+        .durasi-text { color: var(--meratus-red); font-weight: bold; margin-top: 5px; display: block; }
+        .timer-running { color: #1890ff; font-weight: bold; font-family: monospace; }
+        
+        /* Tambahan Style Fitur Request */
+        .badge-req { background: #f0f0f0; color: #666; border: 1px solid #ccc; }
+        .btn-execute { background: var(--accent); color: white; margin-top: 10px; }
+/* Style khusus untuk list request yang lebih ringkas */
+.request-item-small {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    margin-bottom: 8px;
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    font-size: 0.85rem;
+}
+
+.request-info {
+    flex: 1;
+    padding-right: 10px;
+}
+
+.request-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.btn-small {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+    width: auto;
+    margin: 0;
+}
+/* Gaya untuk Header Grouping Bulan */
+.month-divider {
+    background: var(--meratus-navy);
+    color: white;
+    padding: 8px 15px;
+    border-radius: 6px;
+    margin: 20px 0 10px 0;
+    font-size: 0.85rem;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Container Data Ringkas */
+.compact-card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.compact-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+/* Area Detail (Temuan & Hasil) */
+.compact-content {
+    font-size: 0.8rem;
+    border-top: 1px dashed #eee;
+    padding-top: 8px;
+}
+
+.info-box {
+    margin-bottom: 6px;
+    padding: 6px 10px;
+    border-radius: 4px;
+}
+
+.box-temuan { background: #f9f9f9; border-left: 3px solid #ccc; }
+.box-hasil { background: #f0fff4; border-left: 3px solid var(--success); color: #2e7d32; }
+
+.compact-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    font-size: 0.75rem;
+}
+/* Style tambahan untuk info waktu yang ringkas */
+.time-label {
+    font-size: 0.65rem;
+    color: #999;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-right: 4px;
+}
+
+.time-value {
+    font-size: 0.75rem;
+    color: #555;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.compact-grid-info {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2px;
+    margin-top: 5px;
+    padding: 6px 0;
+    border-top: 1px solid #f0f0f0;
+}
+.timer-running {
+    color: #1890ff;
+    font-weight: bold;
+    font-family: monospace; /* Font ini punya lebar angka yang sama */
+    font-size: 0.8rem;
+}
+
+    </style>
+</head>
+<body>
+<header class="ga-header">
+        <h1>GENERAL AFFAIR</h1>
+        <p>Meratus Group Head Office (PT Meratus Line)</p>
+    </header>
+<nav class="navbar">
+    <div class="logo-text">MERATUS<span>.</span></div>
+    <div id="realtime-clock" style="font-size: 0.75rem; font-weight: 800; color: #666;"></div>
+</nav>
+
+<div class="container">
+    
+    <div id="tab-request" class="tab-content">
+        <div class="user-card">
+            <p>Antrean Pekerjaan:</p>
+            <h2>REQUEST LIST</h2>
+        </div>
+        <div class="card">
+            <h3>Input Request Baru</h3>
+            <label>Nama Request / Ruangan</label>
+            <input type="text" id="req_nama" placeholder="Contoh: IT Support / Ruang Server">
+            <label>Deskripsi Kerusakan</label>
+            <textarea id="req_masalah" rows="2" placeholder="Jelaskan detail request..."></textarea>
+            <button class="btn btn-check" onclick="saveRequest()" style="background: var(--accent);">💾 Simpan Request</button>
+        </div>
+        <div class="card">
+            <h3>Dashboard List Pekerjaan (Request)</h3>
+            <div id="listRequestContainer"></div>
+        </div>
+    </div>
+    
+    <div id="tab-input" class="tab-content active">
+        <div class="user-card">
+            <p>Sistem Pemantauan:</p>
+            <h2>MONITORING ME & BUILDING</h2>
+        </div>
+
+        <div class="card">
+            <h3>Identifikasi Masalah</h3>
+            <label>Subjek / Kerusakan</label>
+            <input type="text" id="masalah" placeholder="Misal: AC Ruang GA bocor">
+            
+            <label>Tim & Pekerja</label>
+            <div style="display: flex; gap: 10px;">
+                <select id="tim" onchange="updatePekerja()" style="flex:1">
+                    <option value="">-- Tim --</option>
+                    <option value="ME">ME</option>
+                    <option value="BUILDING">BUILDING</option>
+                </select>
+                <select id="nama" style="flex:1.5">
+                    <option value="">-- Pilih Nama --</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Observasi Lapangan</h3>
+            <label>Foto Kerusakan (Auto Compress ~100KB)</label>
+            <input type="file" id="fotoCek" accept="image/*" onchange="processImage(this, 'prevCek')">
+            <img id="prevCek" class="img-preview">
+            
+            <label>Detail Temuan</label>
+            <textarea id="hasilCek" rows="2" placeholder="Catatan hasil pengecekan..."></textarea>
+            <button class="btn btn-check" onclick="simpanCek()">+ Catat Temuan</button>
+            <div id="tempLog" style="margin-top:12px; font-size: 0.75rem; color: #888; font-style: italic;"></div>
+        </div>
+
+        <div id="actionBtns" style="display: none; gap: 10px; margin-top: 10px;">
+            <button class="btn btn-pending" onclick="submitTask('Pending')">Tunggu Material</button>
+            <button class="btn btn-start" onclick="submitTask('In Progress')">Mulai Sekarang</button>
+        </div>
+    </div>
+
+    <div id="tab-dashboard" class="tab-content">
+        <div class="stats-grid" id="statsContainer">
+            <div class="stat-card"><h4>Pending</h4><p id="stat-pending">0</p></div>
+            <div class="stat-card"><h4>Progress</h4><p id="stat-progress">0</p></div>
+            <div class="stat-card"><h4>Selesai</h4><p id="stat-done">0</p></div>
+        </div>
+
+        <div class="search-container">
+            <input type="text" class="search-input" id="searchInput" placeholder="Cari laporan atau nama pekerja..." onkeyup="renderDashboard()">
+        </div>
+
+        <div class="tools">
+            <button class="btn-tool" onclick="exportToExcel()">📊 Export Excel</button>
+            <button class="btn-tool" onclick="exportToPDF()">📕 Export PDF</button>
+            <button class="btn-tool" onclick="exportData()">💾 Backup JSON</button>
+            <button class="btn-tool" onclick="document.getElementById('importFile').click()">📂 Import</button>
+            <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
+        </div>
+
+        <div class="card">
+            <h3>Monitoring Aktif</h3>
+            <div id="listAktif"></div>
+        </div>
+
+        <div class="card">
+            <h3>Riwayat Selesai</h3>
+            <div id="listDone"></div>
+        </div>
+    </div>
+</div>
+
+<div id="modalFinish" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; padding:20px; box-sizing:border-box; overflow-y: auto;">
+    <div class="card" style="margin-top: 30px; max-width: 500px; margin-left: auto; margin-right: auto;">
+        <h3>Penyelesaian Kerja</h3>
+        
+        <label>Keterangan Hasil Kerja (Opsional)</label>
+        <textarea id="ketSelesai" rows="3" placeholder="Jelaskan apa yang sudah dikerjakan/diperbaiki..."></textarea>
+
+        <label>Upload Foto Hasil Kerja (Auto Compress ~100KB)</label>
+        <input type="file" id="fotoSelesai" accept="image/*" onchange="processImage(this, 'prevSelesai')">
+        <img id="prevSelesai" class="img-preview">
+        
+        <button class="btn btn-start" onclick="confirmFinish()">Konfirmasi Selesai</button>
+        <button class="btn" style="background:#eee; margin-top:10px; color: #333;" onclick="closeModal()">Batal</button>
+    </div>
+</div>
+
+<nav class="bottom-nav">
+    <div class="nav-item" onclick="switchTab('request', this)">
+        <span class="nav-icon">📩</span>
+        <span>Request</span>
+    </div>
+    <div class="nav-item active" onclick="switchTab('input', this)">
+        <span class="nav-icon">📝</span>
+        <span>Input</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('dashboard', this)">
+        <span class="nav-icon">📊</span>
+        <span>Dashboard</span>
+    </div>
+</nav>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    const timData = { "ME": ["Heru", "Heri", "Dayat", "Bedjo", "Ribut"], "BUILDING": ["Mustaman", "Jamzadi", "Kartono", "Yoyok", "Kasnadi", "Sukandar"] };
+    
+    // --- KONFIGURASI SUPABASE ---
+    const SUPABASE_URL = 'https://wzryigxmzebgzobungfq.supabase.co'; 
+    const SUPABASE_KEY = 'sb_publishable_Q6hEGPYwkMPqsMpsAu4mPg_dUOUnKfp'; 
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentLogs = [];
+    let selectedTaskId = null;
+    let base64Cek = "";
+    let base64Selesai = "";
+    let timerIntervals = {};
+
+    // --- FITUR REQUEST ---
+    async function saveRequest() {
+        const nama = document.getElementById('req_nama').value;
+        const masalah = document.getElementById('req_masalah').value;
+        if(!nama || !masalah) return alert("Lengkapi data request!");
+
+        const newRequest = {
+            id: Date.now(),
+            nama: nama,
+            masalah: masalah,
+            status: 'Request'
+        };
+
+        // GANTI: Simpan ke Supabase
+        const { error } = await _supabase.from('request_list').insert([newRequest]);
+        
+        if(error) {
+            alert("Gagal simpan ke database: " + error.message);
+        } else {
+            document.getElementById('req_nama').value = "";
+            document.getElementById('req_masalah').value = "";
+            renderRequests();
+            alert("Request berhasil disimpan ke Cloud!");
+        }
+    }
+
+    async function renderRequests() {
+        // GANTI: Ambil dari Supabase
+        const { data: reqDb, error } = await _supabase.from('request_list').select('*').order('id', { ascending: false });
+        
+        const container = document.getElementById('listRequestContainer');
+        container.innerHTML = "";
+
+        if(error || !reqDb || reqDb.length === 0) {
+            container.innerHTML = "<p style='text-align:center; color:#ccc; font-size:0.8rem;'>Tidak ada request pekerjaan.</p>";
+            return;
+        }
+
+        reqDb.forEach(r => {
+            container.innerHTML += `
+                <div class="request-item-small">
+                    <div class="request-info">
+                        <div style="font-weight: bold; color: var(--meratus-navy);">${r.masalah}</div>
+                        <div style="font-size: 0.7rem; color: #888;">Dari: ${r.nama}</div>
+                    </div>
+                    <div class="request-actions">
+                        <button class="btn btn-execute btn-small" onclick="executeRequest(${r.id}, '${r.nama}', '${r.masalah}')">⚡ EKSEKUSI</button>
+                        <button class="btn-tool btn-small" style="color:red; border:none;" onclick="if(confirm('Apakah Anda yakin ingin menghapus request ini?')) hapusRequest(${r.id})">🗑️</button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    async function executeRequest(id, nama, masalah) {
+        document.getElementById('masalah').value = `[REQ: ${nama}] ${masalah}`;
+        switchTab('input', document.querySelectorAll('.nav-item')[1]);
+        await hapusRequest(id, false); // Hapus dari list request setelah ditarik
+    }
+
+    async function hapusRequest(id, reload = true) {
+        const { error } = await _supabase.from('request_list').delete().eq('id', id);
+        if(!error && reload) renderRequests();
+    }
+
+    // --- FUNGSI UTAMA ---
+    function switchTab(id, el) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById('tab-' + id).classList.add('active');
+        el.classList.add('active');
+        if(id === 'dashboard') renderDashboard();
+        if(id === 'request') renderRequests();
+    }
+
+    function updatePekerja() {
+        const tim = document.getElementById('tim').value;
+        const n = document.getElementById('nama');
+        n.innerHTML = '<option value="">-- Pilih Nama --</option>';
+        if(tim) timData[tim].forEach(p => n.innerHTML += `<option value="${p}">${p}</option>`);
+    }
+
+    // --- FUNGSI KOMPRESI GAMBAR ---
+    function processImage(input, targetId) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = function (event) {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = function () {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                const max_size = 1024; 
+                if (width > height) {
+                    if (width > max_size) { height *= max_size / width; width = max_size; }
+                } else {
+                    if (height > max_size) { width *= max_size / height; height = max_size; }
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                let quality = 0.7;
+                let dataUrl = canvas.toDataURL('image/jpeg', quality);
+                while ((dataUrl.length * 0.75) > 153600 && quality > 0.1) { // Max 150KB agar DB tidak berat
+                    quality -= 0.1;
+                    dataUrl = canvas.toDataURL('image/jpeg', quality);
+                }
+                const preview = document.getElementById(targetId);
+                preview.src = dataUrl;
+                preview.style.display = 'block';
+                if(targetId === 'prevCek') base64Cek = dataUrl;
+                else base64Selesai = dataUrl;
+            };
+        };
+    }
+
+    function simpanCek() {
+        const note = document.getElementById('hasilCek').value;
+        if(!note) return alert("Isi detail temuan!");
+        currentLogs.push({ time: new Date().toLocaleString(), note: note });
+        document.getElementById('tempLog').innerText = `✅ Berhasil mencatat ${currentLogs.length} temuan.`;
+        document.getElementById('actionBtns').style.display = 'flex';
+        document.getElementById('hasilCek').value = "";
+    }
+
+    async function submitTask(status) {
+        const m = document.getElementById('masalah').value;
+        const tim = document.getElementById('tim').value;
+        const n = document.getElementById('nama').value;
+        if(!m || !n || !tim) return alert("Lengkapi data!");
+
+        const now = new Date();
+        const newTask = {
+            id: Date.now(),
+            masalah: m,
+            pekerja: n + " (" + tim + ")",
+            status: status,
+            riwayat: currentLogs,
+            fotoCek: base64Cek,
+            fotoSelesai: "",
+            waktuInput: now.toISOString(),
+            waktuMulai: status === 'In Progress' ? now.toISOString() : null,
+            waktuSelesai: null,
+            keteranganSelesai: "" 
+        };
+
+        const { error } = await _supabase.from('maintenance_logs').insert([newTask]);
+
+        if(error) {
+            alert("Gagal simpan: " + error.message);
+        } else {
+            alert("Data berhasil dikirim ke Cloud!");
+            location.reload();
+        }
+    }
+
+    function calculateDuration(start, end) {
+        if(!start || !end) return "-";
+        const d1 = new Date(start);
+        const d2 = new Date(end);
+        const diff = Math.abs(d2 - d1);
+        const hours = Math.floor(diff / 3600000);
+        const minutes = Math.floor((diff % 3600000) / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+        return `${hours}j ${minutes}m ${seconds}s`;
+    }
+
+    function startLiveTimer(taskId, startTime) {
+        if(timerIntervals[taskId]) clearInterval(timerIntervals[taskId]);
+        timerIntervals[taskId] = setInterval(() => {
+            const el = document.getElementById(`timer-${taskId}`);
+            if(el) {
+                el.innerText = calculateDuration(startTime, new Date());
+            } else {
+                clearInterval(timerIntervals[taskId]);
+            }
+        }, 1000);
+    }
+
+    async function renderDashboard() {
+        const { data: db, error } = await _supabase.from('maintenance_logs').select('*').order('waktuInput', { ascending: false });
+        
+        if(error) return console.error(error);
+
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        
+        document.getElementById('stat-pending').innerText = db.filter(x => x.status === 'Pending').length;
+        document.getElementById('stat-progress').innerText = db.filter(x => x.status === 'In Progress').length;
+        document.getElementById('stat-done').innerText = db.filter(x => x.status === 'Selesai').length;
+
+        const containerAktif = document.getElementById('listAktif');
+        const containerDone = document.getElementById('listDone');
+        containerAktif.innerHTML = "";
+        containerDone.innerHTML = "";
+
+        const groupByMonth = (data) => {
+            return data.reduce((acc, item) => {
+                const date = new Date(item.waktuInput);
+                const monthYear = date.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+                if (!acc[monthYear]) acc[monthYear] = [];
+                acc[monthYear].push(item);
+                return acc;
+            }, {});
+        };
+
+        const filteredData = db.filter(t => 
+            !query || t.masalah.toLowerCase().includes(query) || t.pekerja.toLowerCase().includes(query)
+        );
+
+        const grouped = groupByMonth(filteredData);
+
+        for (const month in grouped) {
+            // Tambahkan divider bulan jika diperlukan di sini
+            grouped[month].forEach(t => {
+                const html = createCompactHTML(t);
+                if(t.status === 'Selesai') {
+                    containerDone.innerHTML += html;
+                } else {
+                    containerAktif.innerHTML += html;
+                    if(t.status === 'In Progress' && t.waktuMulai) {
+                        setTimeout(() => startLiveTimer(t.id, t.waktuMulai), 50);
+                    }
+                }
+            });
+        }
+    }
+
+    function createCompactHTML(t) {
+        const badgeClass = t.status === 'Pending' ? 'badge-pending' : (t.status === 'In Progress' ? 'badge-progress' : 'badge-done');
+        const listTemuan = t.riwayat && t.riwayat.length > 0 
+            ? t.riwayat.map(r => `<div style="margin-bottom:2px;">• <span class="time-value">${r.time}</span>: ${r.note}</div>`).join("") 
+            : "<span style='color:#ccc'>Tidak ada detail temuan</span>";
+
+        const startTimeStr = t.waktuMulai ? new Date(t.waktuMulai).toLocaleString('id-ID', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}).replace(/\./g, ':') : '-';
+
+        return `
+            <div class="compact-card">
+                <div class="compact-header">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 800; color: var(--meratus-navy); font-size: 0.9rem; line-height:1.2;">${t.masalah}</div>
+                        <div style="font-size: 0.7rem; color: #666; margin-top:2px;">👷 ${t.pekerja}</div>
+                    </div>
+                    <span class="status-badge ${badgeClass}" style="font-size:0.6rem; padding: 2px 8px;">${t.status}</span>
+                </div>
+                <div class="compact-content">
+                    <div class="info-box box-temuan" style="margin-bottom:4px;">
+                        <strong style="font-size:0.6rem; color:#888; display:block;">DETAIL TEMUAN:</strong>
+                        <div style="font-size:0.75rem; line-height:1.4;">${listTemuan}</div>
+                    </div>
+                    ${t.status === 'Selesai' ? `<div class="info-box box-hasil"><strong style="font-size:0.6rem; color:#2e7d32;">HASIL:</strong> <span style="font-size:0.75rem;">${t.keteranganSelesai}</span></div>` : ''}
+                    <div class="compact-grid-info">
+                        <div><span class="time-label">MULAI:</span> <span class="time-value">${startTimeStr}</span></div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <div><span class="time-label">DURASI:</span> <span id="timer-${t.id}" class="time-value">${t.status === 'Selesai' ? calculateDuration(t.waktuMulai, t.waktuSelesai) : '0j 0m 0s'}</span></div>
+                            <div style="display:flex; gap:8px;">
+                                ${t.fotoCek ? `<span onclick="viewImg('${t.fotoCek}')" style="cursor:pointer; color:var(--accent); font-size:0.7rem;">🖼️ CEK</span>` : ''}
+                                ${t.fotoSelesai ? `<span onclick="viewImg('${t.fotoSelesai}')" style="cursor:pointer; color:var(--success); font-size:0.7rem;">🖼️ HASIL</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:4px; margin-top:8px; border-top: 1px solid #eee; padding-top:8px;">
+                    ${t.status === 'Pending' ? `<button class="btn-tool" style="flex:1; background:var(--meratus-navy); color:white;" onclick="updateStatus(${t.id}, 'In Progress')">MULAI</button>` : ''}
+                    ${t.status === 'In Progress' ? `<button class="btn-tool" style="flex:1; background:var(--meratus-red); color:white" onclick="openFinishModal(${t.id})">SELESAI</button>` : ''}
+                    <button class="btn-tool" style="width:35px; color:#ccc;" onclick="hapusData(${t.id})">🗑️</button>
+                </div>
+            </div>`;
+    }
+
+    async function updateStatus(id, newStatus) {
+        const updateData = { status: newStatus };
+        if(newStatus === 'In Progress') updateData.waktuMulai = new Date().toISOString();
+        
+        const { error } = await _supabase.from('maintenance_logs').update(updateData).eq('id', id);
+        if(!error) renderDashboard();
+    }
+
+    function openFinishModal(id) {
+        selectedTaskId = id;
+        document.getElementById('modalFinish').style.display = 'block';
+    }
+
+    function closeModal() {
+        document.getElementById('modalFinish').style.display = 'none';
+        base64Selesai = "";
+        document.getElementById('prevSelesai').style.display = 'none';
+        document.getElementById('ketSelesai').value = ""; 
+    }
+
+    async function confirmFinish() {
+        if(!base64Selesai) return alert("Harap upload foto hasil kerja!");
+        
+        const updateData = {
+            status: 'Selesai',
+            waktuSelesai: new Date().toISOString(),
+            fotoSelesai: base64Selesai,
+            keteranganSelesai: document.getElementById('ketSelesai').value
+        };
+
+        const { error } = await _supabase.from('maintenance_logs').update(updateData).eq('id', selectedTaskId);
+        
+        if(!error) {
+            if(timerIntervals[selectedTaskId]) clearInterval(timerIntervals[selectedTaskId]);
+            closeModal();
+            renderDashboard();
+        }
+    }
+
+    async function hapusData(id) {
+        if(confirm("Hapus data ini?")) {
+            const { error } = await _supabase.from('maintenance_logs').delete().eq('id', id);
+            if(!error) {
+                if(timerIntervals[id]) clearInterval(timerIntervals[id]);
+                renderDashboard();
+            }
+        }
+    }
+
+    function viewImg(base64) {
+        const w = window.open("");
+        w.document.write(`<body style="margin:0; background:#000; display:flex; align-items:center; justify-content:center;"><img src="${base64}" style="max-width:100%; max-height:100vh;"></body>`);
+    }
+
+    async function exportToExcel() {
+        const { data: db } = await _supabase.from('maintenance_logs').select('*').order('waktuInput', { ascending: false });
+        if(!db || db.length === 0) return alert("Data kosong!");
+        
+        const wsData = db.map((t, i) => ({
+            "No": i + 1,
+            "Masalah": t.masalah,
+            "Pekerja": t.pekerja,
+            "Status": t.status,
+            "Mulai": t.waktuMulai ? new Date(t.waktuMulai).toLocaleString('id-ID') : "-",
+            "Selesai": t.waktuSelesai ? new Date(t.waktuSelesai).toLocaleString('id-ID') : "-",
+            "Durasi": calculateDuration(t.waktuMulai, t.waktuSelesai),
+            "Keterangan": t.keteranganSelesai || "-"
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(wsData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Laporan");
+        XLSX.writeFile(wb, `Laporan_Maintenance_${Date.now()}.xlsx`);
+    }
+
+    setInterval(() => {
+        const clockEl = document.getElementById('realtime-clock');
+        if(clockEl) clockEl.innerText = new Date().toLocaleString('id-ID');
+    }, 1000);
+
+    // Initial Load
+    renderRequests();
+    renderDashboard();
+
+</script>
+</body>
+</html>
