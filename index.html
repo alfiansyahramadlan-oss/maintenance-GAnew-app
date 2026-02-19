@@ -567,6 +567,11 @@
     }
 
     function simpanCek() {
+        // Validasi: Cek apakah foto sudah diinput (base64Cek tidak kosong)
+    if (!base64Cek) {
+        alert("Harap pilih dan upload foto kerusakan terlebih dahulu sebelum mencatat temuan!");
+        return; // Menghentikan proses jika foto belum ada
+    }
         const note = document.getElementById('hasilCek').value;
         if(!note) return alert("Isi detail temuan!");
         currentLogs.push({ time: new Date().toLocaleString(), note: note });
@@ -916,5 +921,6 @@ async function importData(event) {
 </body>
 
 </html>
+
 
 
