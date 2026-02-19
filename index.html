@@ -384,6 +384,7 @@
         <div class="tools">
             <button class="btn-tool" onclick="exportToExcel()">📊 Export Excel</button>
             <button class="btn-tool" onclick="exportToPDF()">📕 Export PDF</button>
+            <button class="btn-tool" onclick="exportData()">💾 Backup JSON</button>
             <button class="btn-tool" onclick="document.getElementById('importFile').click()">📂 Import</button>
             <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
         </div>
@@ -878,8 +879,42 @@ async function exportToPDF() {
 
     doc.save(`Laporan_Lengkap_Maintenance_${Date.now()}.pdf`);
 }
+
+async function exportData() {
+    const { data: db, error } = await _supabase.from('maintenance_logs').select('*');
+    if(error) return alert("Gagal mengambil data untuk backup");
+    
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "backup_maintenance_" + Date.now() + ".json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+}
+
+async function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            if(confirm(`Anda akan mengimpor ${importedData.length} data. Lanjutkan?`)) {
+                const { error } = await _supabase.from('maintenance_logs').upsert(importedData);
+                if(error) throw error;
+                alert("Data berhasil dipulihkan!");
+                renderDashboard();
+            }
+        } catch (err) {
+            alert("Gagal impor: " + err.message);
+        }
+    };
+    reader.readAsText(file);
+}
 </script>
 </body>
 
 </html>
+
 
