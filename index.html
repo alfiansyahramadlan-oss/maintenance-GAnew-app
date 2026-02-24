@@ -492,11 +492,13 @@
         });
     }
 
-    async function executeRequest(id, nama, masalah) {
-        document.getElementById('masalah').value = `[REQ: ${nama}] ${masalah}`;
-        switchTab('input', document.querySelectorAll('.nav-item')[1]);
-        await hapusRequest(id, false); // Hapus dari list request setelah ditarik
-    }
+async function executeRequest(id, nama, masalah) {
+    document.getElementById('masalah').value = `[REQ: ${nama}] ${masalah}`;
+    // Simpan ID request sementara agar bisa dihapus nanti saat submit sukses
+    sessionStorage.setItem('pending_delete_id', id); 
+    switchTab('input', document.querySelectorAll('.nav-item')[1]);
+    // Baris hapusRequest sudah dibuang dari sini
+}
 
     async function hapusRequest(id, reload = true) {
         const { error } = await _supabase.from('request_list').delete().eq('id', id);
@@ -621,6 +623,12 @@ initPekerjaCheckboxes();
     if(error) {
         alert("Gagal simpan: " + error.message);
     } else {
+        // CEK APAKAH INI HASIL DARI EKSEKUSI REQUEST
+        const requestId = sessionStorage.getItem('pending_delete_id');
+        if(requestId) {
+            await _supabase.from('request_list').delete().eq('id', requestId);
+            sessionStorage.removeItem('pending_delete_id');
+        }
         alert("Data berhasil dikirim ke Cloud!");
         location.reload();
     }
@@ -936,6 +944,7 @@ async function importData(event) {
 </body>
 
 </html>
+
 
 
 
