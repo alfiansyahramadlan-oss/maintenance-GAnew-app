@@ -472,53 +472,55 @@
     let timerIntervals = {};
 
     // --- FITUR REQUEST ---
-    async function saveRequest() {
-        const nama = document.getElementById('req_nama').value;
-        const masalah = document.getElementById('req_masalah').value;
-        if(!nama || !masalah) return alert("Lengkapi data request!");
+async function saveRequest() {
+    const nama = document.getElementById('req_nama').value;
+    const masalah = document.getElementById('req_masalah').value;
+    
+    // Mengambil kategori dari radio button (ME atau BUILDING)
+    const kategori = document.querySelector('input[name="req_kategori"]:checked').value;
 
-        const newRequest = {
-            id: Date.now(),
-            nama: nama,
-            masalah: masalah,
-            status: 'Request'
-        };
+    if(!nama || !masalah) return alert("Lengkapi data request!");
 
-        // GANTI: Simpan ke Supabase
-        const { error } = await _supabase.from('request_list').insert([newRequest]);
-        
-        if(error) {
-            alert("Gagal simpan ke database: " + error.message);
-        } else {
-            document.getElementById('req_nama').value = "";
-            document.getElementById('req_masalah').value = "";
-            renderRequests();
-            alert("Request berhasil disimpan ke Cloud!");
-        }
+    const newRequest = {
+        id: Date.now(),
+        nama: `${kategori} - ${nama}`, // Contoh hasil: "ME - Ruang Server"
+        masalah: masalah,
+        status: 'Request'
+    };
+
+    const { error } = await _supabase.from('request_list').insert([newRequest]);
+    
+    if(error) {
+        alert("Gagal simpan: " + error.message);
+    } else {
+        document.getElementById('req_nama').value = "";
+        document.getElementById('req_masalah').value = "";
+        renderRequests(); // Langsung refresh tampilan
+        alert("Request berhasil disimpan!");
     }
+}
 
 async function renderRequests() {
     const { data: reqDb, error } = await _supabase.from('request_list').select('*').order('id', { ascending: false });
     const container = document.getElementById('listRequestContainer');
     
     if(error || !reqDb || reqDb.length === 0) {
-        container.innerHTML = "<p style='text-align:center; color:#ccc;'>Tidak ada request.</p>";
+        container.innerHTML = "<p style='text-align:center; color:#ccc; font-size:0.8rem;'>Tidak ada request.</p>";
         return;
     }
 
-    // Memisahkan data
-    const dataME = reqDb.filter(r => r.nama.startsWith('ME'));
-    const dataBuilding = reqDb.filter(r => r.nama.startsWith('BUILDING'));
+    // Filter data berdasarkan teks "ME" atau "BUILDING" di kolom nama
+    const dataME = reqDb.filter(r => r.nama.toUpperCase().includes('ME'));
+    const dataBuilding = reqDb.filter(r => r.nama.toUpperCase().includes('BUILDING'));
 
-    // Membuat struktur kolom
     container.innerHTML = `
-        <div class="request-split-container">
+        <div class="request-split-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <div id="col-me">
-                <div class="category-header" style="background: #e6f7ff; color: var(--meratus-navy);">🛠️ ANTREAN ME</div>
+                <div class="category-header" style="background: #e6f7ff; color: #1a3a5a; font-weight: bold; font-size: 0.7rem; padding: 5px; text-align: center; margin-bottom: 10px; border-radius: 4px;">🛠️ ME</div>
                 <div id="items-me"></div>
             </div>
             <div id="col-building">
-                <div class="category-header" style="background: #fff1f0; color: var(--meratus-red);">🏗️ ANTREAN BUILDING</div>
+                <div class="category-header" style="background: #fff1f0; color: #e74c3c; font-weight: bold; font-size: 0.7rem; padding: 5px; text-align: center; margin-bottom: 10px; border-radius: 4px;">🏗️ BUILDING</div>
                 <div id="items-building"></div>
             </div>
         </div>
@@ -527,36 +529,30 @@ async function renderRequests() {
     const meList = document.getElementById('items-me');
     const buildingList = document.getElementById('items-building');
 
-    // Isi data ME
-    if(dataME.length > 0) {
-        dataME.forEach(r => meList.innerHTML += createItem(r));
-    } else {
-        meList.innerHTML = "<p style='font-size:0.7rem; color:#999; padding-left:10px;'>Kosong</p>";
-    }
+    // Tampilkan data ke masing-masing kolom menggunakan fungsi createItem
+    dataME.forEach(r => meList.innerHTML += createItem(r));
+    dataBuilding.forEach(r => buildingList.innerHTML += createItem(r));
 
-    // Isi data Building
-    if(dataBuilding.length > 0) {
-        dataBuilding.forEach(r => buildingList.innerHTML += createItem(r));
-    } else {
-        buildingList.innerHTML = "<p style='font-size:0.7rem; color:#999; padding-left:10px;'>Kosong</p>";
-    }
+    if(dataME.length === 0) meList.innerHTML = "<p style='font-size:0.6rem; color:#ccc; text-align:center;'>Kosong</p>";
+    if(dataBuilding.length === 0) buildingList.innerHTML = "<p style='font-size:0.6rem; color:#ccc; text-align:center;'>Kosong</p>";
 }
 
 // Fungsi item dengan tombol bertulisan "EKSEKUSI"
 function createItem(r) {
     return `
-        <div class="request-item-small" style="flex-direction: column; padding: 8px; gap: 8px; min-height: 100px; justify-content: space-between;">
+        <div class="request-item-small" style="display: flex; flex-direction: column; padding: 10px; gap: 8px; min-height: 90px; justify-content: space-between; background: white; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px;">
             <div class="request-info">
-                <div style="font-weight: bold; color: #333; font-size: 0.75rem; line-height: 1.1;">${r.masalah}</div>
-                <div style="font-size: 0.6rem; color: #888; margin-top: 4px;">${r.nama}</div>
+                <div style="font-weight: bold; color: #333; font-size: 0.75rem; line-height: 1.2;">${r.masalah}</div>
+                <div style="font-size: 0.65rem; color: #888; margin-top: 4px;">${r.nama}</div>
             </div>
-            <div class="request-actions" style="width: 100%; display: flex; gap: 4px;">
+
+            <div class="request-actions" style="width: 100%; display: flex; gap: 5px;">
                 <button class="btn btn-execute btn-small" onclick="executeRequest(${r.id}, '${r.nama}', '${r.masalah}')" 
-                    style="flex: 1; font-size: 0.6rem; padding: 6px 2px; white-space: nowrap;">
+                    style="flex: 1; font-size: 0.65rem; padding: 8px 2px; background: #3498db; color: white; border: none; border-radius: 4px; font-weight: bold;">
                     ⚡ EKSEKUSI
                 </button>
                 <button class="btn-tool btn-small" onclick="hapusRequest(${r.id})" 
-                    style="width: 25px; border: none; color: #ddd; font-size: 0.7rem; padding: 0;">🗑️</button>
+                    style="width: 30px; border: none; background: transparent; color: #ccc; font-size: 0.8rem;">🗑️</button>
             </div>
         </div>`;
 }
@@ -1013,6 +1009,7 @@ async function importData(event) {
 </body>
 
 </html>
+
 
 
 
