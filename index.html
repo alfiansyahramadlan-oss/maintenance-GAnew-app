@@ -509,9 +509,9 @@ async function renderRequests() {
         return;
     }
 
-    // Filter data berdasarkan teks "ME" atau "BUILDING" di kolom nama
-    const dataME = reqDb.filter(r => r.nama.toUpperCase().includes('ME'));
-    const dataBuilding = reqDb.filter(r => r.nama.toUpperCase().includes('BUILDING'));
+    // FILTER YANG LEBIH AKURAT: Hanya cek bagian awal Nama
+    const dataME = reqDb.filter(r => r.nama.startsWith('ME'));
+    const dataBuilding = reqDb.filter(r => r.nama.startsWith('BUILDING'));
 
     container.innerHTML = `
         <div class="request-split-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -529,7 +529,6 @@ async function renderRequests() {
     const meList = document.getElementById('items-me');
     const buildingList = document.getElementById('items-building');
 
-    // Tampilkan data ke masing-masing kolom menggunakan fungsi createItem
     dataME.forEach(r => meList.innerHTML += createItem(r));
     dataBuilding.forEach(r => buildingList.innerHTML += createItem(r));
 
@@ -551,7 +550,8 @@ function createItem(r) {
                     style="flex: 1; font-size: 0.65rem; padding: 8px 2px; background: #3498db; color: white; border: none; border-radius: 4px; font-weight: bold;">
                     ⚡ EKSEKUSI
                 </button>
-                <button class="btn-tool btn-small" onclick="hapusRequest(${r.id})" 
+                
+                <button class="btn-tool btn-small" onclick="confirmDeleteRequest(${r.id})" 
                     style="width: 30px; border: none; background: transparent; color: #ccc; font-size: 0.8rem;">🗑️</button>
             </div>
         </div>`;
@@ -1005,10 +1005,19 @@ async function importData(event) {
     };
     reader.readAsText(file);
 }
+
+    function confirmDeleteRequest(id) {
+    // Pop-up yakin mau hapus
+    const yakin = confirm("Apakah Anda yakin ingin menghapus request ini?");
+    if (yakin) {
+        hapusRequest(id);
+    }
+}
 </script>
 </body>
 
 </html>
+
 
 
 
