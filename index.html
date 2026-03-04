@@ -294,7 +294,30 @@
     font-family: monospace; /* Font ini punya lebar angka yang sama */
     font-size: 0.8rem;
 }
+/* Container untuk membagi dua kolom */
+.request-split-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Membagi dua kolom sama rata */
+    gap: 15px;
+}
 
+/* Responsif: Jika layar HP (dibawah 600px) kembali jadi satu kolom */
+@media (max-width: 600px) {
+    .request-split-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+.category-header {
+    font-weight: 800;
+    font-size: 0.8rem;
+    margin-bottom: 10px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
     </style>
 </head>
 <body>
@@ -316,6 +339,16 @@
         </div>
         <div class="card">
             <h3>Input Request Baru</h3>
+
+            <label>Pilih Kategori Tim</label>
+    <div style="display: flex; gap: 20px; margin-bottom: 15px; background: #f9f9f9; padding: 10px; border-radius: 8px;">
+        <label style="display: flex; align-items: center; gap: 5px; margin-bottom: 0;">
+            <input type="radio" name="req_kategori" value="ME" checked style="width: auto; margin: 0;"> ME
+        </label>
+        <label style="display: flex; align-items: center; gap: 5px; margin-bottom: 0;">
+            <input type="radio" name="req_kategori" value="BUILDING" style="width: auto; margin: 0;"> Building
+        </label>
+    </div>
             <label>Nama Request / Ruangan</label>
             <input type="text" id="req_nama" placeholder="Contoh: IT Support / Ruang Server">
             <label>Deskripsi Kerusakan</label>
@@ -464,33 +497,69 @@
         }
     }
 
-    async function renderRequests() {
-        // GANTI: Ambil dari Supabase
-        const { data: reqDb, error } = await _supabase.from('request_list').select('*').order('id', { ascending: false });
-        
-        const container = document.getElementById('listRequestContainer');
-        container.innerHTML = "";
-
-        if(error || !reqDb || reqDb.length === 0) {
-            container.innerHTML = "<p style='text-align:center; color:#ccc; font-size:0.8rem;'>Tidak ada request pekerjaan.</p>";
-            return;
-        }
-
-        reqDb.forEach(r => {
-            container.innerHTML += `
-                <div class="request-item-small">
-                    <div class="request-info">
-                        <div style="font-weight: bold; color: var(--meratus-navy);">${r.masalah}</div>
-                        <div style="font-size: 0.7rem; color: #888;">Dari: ${r.nama}</div>
-                    </div>
-                    <div class="request-actions">
-                        <button class="btn btn-execute btn-small" onclick="executeRequest(${r.id}, '${r.nama}', '${r.masalah}')">⚡ EKSEKUSI</button>
-                        <button class="btn-tool btn-small" style="color:red; border:none;" onclick="if(confirm('Apakah Anda yakin ingin menghapus request ini?')) hapusRequest(${r.id})">🗑️</button>
-                    </div>
-                </div>
-            `;
-        });
+async function renderRequests() {
+    const { data: reqDb, error } = await _supabase.from('request_list').select('*').order('id', { ascending: false });
+    const container = document.getElementById('listRequestContainer');
+    
+    if(error || !reqDb || reqDb.length === 0) {
+        container.innerHTML = "<p style='text-align:center; color:#ccc;'>Tidak ada request.</p>";
+        return;
     }
+
+    // Memisahkan data
+    const dataME = reqDb.filter(r => r.nama.startsWith('ME'));
+    const dataBuilding = reqDb.filter(r => r.nama.startsWith('BUILDING'));
+
+    // Membuat struktur kolom
+    container.innerHTML = `
+        <div class="request-split-container">
+            <div id="col-me">
+                <div class="category-header" style="background: #e6f7ff; color: var(--meratus-navy);">🛠️ ANTREAN ME</div>
+                <div id="items-me"></div>
+            </div>
+            <div id="col-building">
+                <div class="category-header" style="background: #fff1f0; color: var(--meratus-red);">🏗️ ANTREAN BUILDING</div>
+                <div id="items-building"></div>
+            </div>
+        </div>
+    `;
+
+    const meList = document.getElementById('items-me');
+    const buildingList = document.getElementById('items-building');
+
+    // Isi data ME
+    if(dataME.length > 0) {
+        dataME.forEach(r => meList.innerHTML += createItem(r));
+    } else {
+        meList.innerHTML = "<p style='font-size:0.7rem; color:#999; padding-left:10px;'>Kosong</p>";
+    }
+
+    // Isi data Building
+    if(dataBuilding.length > 0) {
+        dataBuilding.forEach(r => buildingList.innerHTML += createItem(r));
+    } else {
+        buildingList.innerHTML = "<p style='font-size:0.7rem; color:#999; padding-left:10px;'>Kosong</p>";
+    }
+}
+
+// Fungsi item dengan tombol bertulisan "EKSEKUSI"
+function createItem(r) {
+    return `
+        <div class="request-item-small" style="flex-direction: column; padding: 8px; gap: 8px; min-height: 100px; justify-content: space-between;">
+            <div class="request-info">
+                <div style="font-weight: bold; color: #333; font-size: 0.75rem; line-height: 1.1;">${r.masalah}</div>
+                <div style="font-size: 0.6rem; color: #888; margin-top: 4px;">${r.nama}</div>
+            </div>
+            <div class="request-actions" style="width: 100%; display: flex; gap: 4px;">
+                <button class="btn btn-execute btn-small" onclick="executeRequest(${r.id}, '${r.nama}', '${r.masalah}')" 
+                    style="flex: 1; font-size: 0.6rem; padding: 6px 2px; white-space: nowrap;">
+                    ⚡ EKSEKUSI
+                </button>
+                <button class="btn-tool btn-small" onclick="hapusRequest(${r.id})" 
+                    style="width: 25px; border: none; color: #ddd; font-size: 0.7rem; padding: 0;">🗑️</button>
+            </div>
+        </div>`;
+}
 
 async function executeRequest(id, nama, masalah) {
     document.getElementById('masalah').value = `[REQ: ${nama}] ${masalah}`;
@@ -944,6 +1013,7 @@ async function importData(event) {
 </body>
 
 </html>
+
 
 
 
