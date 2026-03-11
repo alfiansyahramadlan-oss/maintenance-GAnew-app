@@ -722,77 +722,54 @@ initPekerjaCheckboxes();
         }, 1000);
     }
 
-async function renderDashboard() {
-    const { data: db, error } = await _supabase.from('maintenance_logs').select('*').order('waktuInput', { ascending: false });
-    if(error) return console.error(error);
-
-    const query = document.getElementById('searchInput').value.toLowerCase();
-    
-    // Hitung Statistik untuk Grafik
-    const nPending = db.filter(x => x.status === 'Pending').length;
-    const nProgress = db.filter(x => x.status === 'In Progress').length;
-    const nDone = db.filter(x => x.status === 'Selesai').length;
-
-    document.getElementById('stat-pending').innerText = nPending;
-    document.getElementById('stat-progress').innerText = nProgress;
-    document.getElementById('stat-done').innerText = nDone;
-    if (typeof drawChart === "function") drawChart(nPending, nProgress, nDone);
-
-    // Wadah Utama
-    const containerAktif = document.getElementById('listAktif');
-    const containerDone = document.getElementById('listDone');
-
-    // Buat Struktur Kolom untuk Monitoring Aktif
-    containerAktif.innerHTML = `
-        <div class="request-split-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top:10px;">
-            <div id="col-aktif-me">
-                <div class="category-header" style="background:#e6f7ff; color:#0050b3; font-weight:bold; font-size:0.7rem; padding:5px; text-align:center; border-radius:4px; margin-bottom:10px;">🛠️ ME</div>
-                <div id="items-aktif-me"></div>
-            </div>
-            <div id="col-aktif-building">
-                <div class="category-header" style="background:#fff1f0; color:#cf1322; font-weight:bold; font-size:0.7rem; padding:5px; text-align:center; border-radius:4px; margin-bottom:10px;">🏗️ BUILDING</div>
-                <div id="items-aktif-building"></div>
-            </div>
-        </div>
-    `;
-    containerDone.innerHTML = ""; // Riwayat selesai tetap satu kolom
-
-    const itemsMe = document.getElementById('items-aktif-me');
-    const itemsBuilding = document.getElementById('items-aktif-building');
-
-    // Filter data berdasarkan pencarian
-    const filteredData = db.filter(t => 
-        !query || t.masalah.toLowerCase().includes(query) || t.pekerja.toLowerCase().includes(query)
-    );
-
-    filteredData.forEach(t => {
-        const html = createCompactHTML(t);
+ async function renderDashboard() {
+        const { data: db, error } = await _supabase.from('maintenance_logs').select('*').order('waktuInput', { ascending: false });
         
-        if(t.status === 'Selesai') {
-            // Masuk ke Riwayat Selesai (Satu Kolom)
-            containerDone.innerHTML += html;
-        } else {
-            // Masuk ke Monitoring Aktif (Dua Kolom)
-            // Cek kategori dari teks di kolom 'masalah' atau 'kategori'
-            const isBuilding = t.masalah.toUpperCase().includes('BUILDING') || (t.kategori && t.kategori.toUpperCase() === 'BUILDING');
-            
-            if(isBuilding) {
-                itemsBuilding.innerHTML += html;
-            } else {
-                itemsMe.innerHTML += html;
-            }
+        if(error) return console.error(error);
 
-            // Jalankan Timer jika In Progress
-            if(t.status === 'In Progress' && t.waktuMulai) {
-                setTimeout(() => startLiveTimer(t.id, t.waktuMulai), 50);
-            }
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        
+        document.getElementById('stat-pending').innerText = db.filter(x => x.status === 'Pending').length;
+        document.getElementById('stat-progress').innerText = db.filter(x => x.status === 'In Progress').length;
+        document.getElementById('stat-done').innerText = db.filter(x => x.status === 'Selesai').length;
+
+        const containerAktif = document.getElementById('listAktif');
+        const containerDone = document.getElementById('listDone');
+        containerAktif.innerHTML = "";
+        containerDone.innerHTML = "";
+
+        const groupByMonth = (data) => {
+            return data.reduce((acc, item) => {
+                const date = new Date(item.waktuInput);
+                const monthYear = date.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+                if (!acc[monthYear]) acc[monthYear] = [];
+                acc[monthYear].push(item);
+                return acc;
+            }, {});
+        };
+
+        const filteredData = db.filter(t => 
+            !query || t.masalah.toLowerCase().includes(query) || t.pekerja.toLowerCase().includes(query)
+        );
+
+        const grouped = groupByMonth(filteredData);
+
+        for (const month in grouped) {
+            // Tambahkan divider bulan jika diperlukan di sini
+            grouped[month].forEach(t => {
+                const html = createCompactHTML(t);
+                if(t.status === 'Selesai') {
+                    containerDone.innerHTML += html;
+                } else {
+                    containerAktif.innerHTML += html;
+                    if(t.status === 'In Progress' && t.waktuMulai) {
+                        setTimeout(() => startLiveTimer(t.id, t.waktuMulai), 50);
+                    }
+                }
+            });
         }
-    });
+    }
 
-    // Cek jika kolom kosong
-    if(itemsMe.innerHTML === "") itemsMe.innerHTML = "<p style='font-size:0.6rem; color:#ccc; text-align:center;'>Tidak ada ME aktif</p>";
-    if(itemsBuilding.innerHTML === "") itemsBuilding.innerHTML = "<p style='font-size:0.6rem; color:#ccc; text-align:center;'>Tidak ada BUILDING aktif</p>";
-}
 
     function createCompactHTML(t) {
         const badgeClass = t.status === 'Pending' ? 'badge-pending' : (t.status === 'In Progress' ? 'badge-progress' : 'badge-done');
@@ -1041,6 +1018,7 @@ async function importData(event) {
 </body>
 
 </html>
+
 
 
 
