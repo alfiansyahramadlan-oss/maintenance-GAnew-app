@@ -318,6 +318,33 @@
     align-items: center;
     gap: 5px;
 }
+
+/* Style khusus Tombol PM Panel */
+.btn-pm-panel {
+    background: linear-gradient(135deg, #1a3a5a 0%, #2c527a 100%);
+    color: white;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-weight: 800;
+    font-size: 0.9rem;
+    border-left: 5px solid var(--meratus-red);
+    box-shadow: 0 4px 15px rgba(26, 58, 90, 0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-pm-panel:active {
+    transform: scale(0.98);
+}
+
+.pm-icon {
+    font-size: 1.5rem;
+}
     </style>
 </head>
 <body>
@@ -367,6 +394,11 @@
             <h2>MONITORING ME & BUILDING</h2>
         </div>
 
+<a href="https://alfiansyahramadlan-oss.github.io/PM-PANEL-MERATUS/" target="_blank" class="btn-pm-panel">
+        <span class="pm-icon">⚡</span>
+        <span>PREVENTIVE MAINTENANCE PANEL MERATUS</span>
+    </a>
+        
 <div class="card">
     <h3>Identifikasi Masalah</h3>
     <label>Subjek / Kerusakan</label>
