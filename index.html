@@ -497,6 +497,8 @@
     const SUPABASE_KEY = 'sb_publishable_Q6hEGPYwkMPqsMpsAu4mPg_dUOUnKfp'; 
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    let displayLimit = 20; // Default awal 20 data
+
     let currentLogs = [];
     let selectedTaskId = null;
     let base64Cek = "";
@@ -755,52 +757,61 @@ initPekerjaCheckboxes();
     }
 
  async function renderDashboard() {
-        const { data: db, error } = await _supabase.from('maintenance_logs').select('*').order('waktuInput', { ascending: false });
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    
+    // Jika sedang mencari, kita ambil lebih banyak (100), jika tidak sesuai limit
+    const currentLimit = query ? 100 : displayLimit;
+
+    const { data: db, error } = await _supabase
+        .from('maintenance_logs')
+        .select('*')
+        .order('waktuInput', { ascending: false })
+        .limit(currentLimit);
         
-        if(error) return console.error(error);
+    if(error) return console.error(error);
 
-        const query = document.getElementById('searchInput').value.toLowerCase();
-        
-        document.getElementById('stat-pending').innerText = db.filter(x => x.status === 'Pending').length;
-        document.getElementById('stat-progress').innerText = db.filter(x => x.status === 'In Progress').length;
-        document.getElementById('stat-done').innerText = db.filter(x => x.status === 'Selesai').length;
+    // Update Statistik
+    document.getElementById('stat-pending').innerText = db.filter(x => x.status === 'Pending').length;
+    document.getElementById('stat-progress').innerText = db.filter(x => x.status === 'In Progress').length;
+    document.getElementById('stat-done').innerText = db.filter(x => x.status === 'Selesai').length;
 
-        const containerAktif = document.getElementById('listAktif');
-        const containerDone = document.getElementById('listDone');
-        containerAktif.innerHTML = "";
-        containerDone.innerHTML = "";
+    const containerAktif = document.getElementById('listAktif');
+    const containerDone = document.getElementById('listDone');
+    
+    let htmlAktif = "";
+    let htmlDone = "";
 
-        const groupByMonth = (data) => {
-            return data.reduce((acc, item) => {
-                const date = new Date(item.waktuInput);
-                const monthYear = date.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
-                if (!acc[monthYear]) acc[monthYear] = [];
-                acc[monthYear].push(item);
-                return acc;
-            }, {});
-        };
+    const filteredData = db.filter(t => 
+        !query || t.masalah.toLowerCase().includes(query) || t.pekerja.toLowerCase().includes(query)
+    );
 
-        const filteredData = db.filter(t => 
-            !query || t.masalah.toLowerCase().includes(query) || t.pekerja.toLowerCase().includes(query)
-        );
-
-        const grouped = groupByMonth(filteredData);
-
-        for (const month in grouped) {
-            // Tambahkan divider bulan jika diperlukan di sini
-            grouped[month].forEach(t => {
-                const html = createCompactHTML(t);
-                if(t.status === 'Selesai') {
-                    containerDone.innerHTML += html;
-                } else {
-                    containerAktif.innerHTML += html;
-                    if(t.status === 'In Progress' && t.waktuMulai) {
-                        setTimeout(() => startLiveTimer(t.id, t.waktuMulai), 50);
-                    }
-                }
-            });
+    filteredData.forEach(t => {
+        const html = createCompactHTML(t);
+        if(t.status === 'Selesai') {
+            htmlDone += html;
+        } else {
+            htmlAktif += html;
+            if(t.status === 'In Progress' && t.waktuMulai) {
+                setTimeout(() => startLiveTimer(t.id, t.waktuMulai), 50);
+            }
         }
+    });
+
+    containerAktif.innerHTML = htmlAktif || "<p style='text-align:center; color:#ccc; font-size:0.8rem;'>Tidak ada monitoring aktif.</p>";
+    
+    // Tambahkan Tombol "Muat Lebih Banyak" di bawah daftar Selesai
+    containerDone.innerHTML = htmlDone || "<p style='text-align:center; color:#ccc; font-size:0.8rem;'>Belum ada riwayat.</p>";
+    
+    if (!query && db.length >= displayLimit) {
+        containerDone.innerHTML += `
+            <div id="loadMoreContainer" style="text-align:center; margin-top:15px;">
+                <button onclick="loadMoreData()" style="background:none; border:none; color:var(--meratus-navy); cursor:pointer; font-weight:bold; font-size:0.8rem; display:flex; flex-direction:column; align-items:center; margin:auto;">
+                    <span>Tampilkan Data Lebih Lama</span>
+                    <span style="font-size:1.5rem;">︾</span>
+                </button>
+            </div>`;
     }
+}
 
 
     function createCompactHTML(t) {
@@ -1045,6 +1056,10 @@ async function importData(event) {
     if (yakin) {
         hapusRequest(id);
     }
+}
+function loadMoreData() {
+    displayLimit += 20; // Tambah 20 data setiap kali diklik
+    renderDashboard();  // Jalankan ulang render
 }
 </script>
 </body>
