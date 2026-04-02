@@ -814,47 +814,53 @@ initPekerjaCheckboxes();
 }
 
 
-    function createCompactHTML(t) {
-        const badgeClass = t.status === 'Pending' ? 'badge-pending' : (t.status === 'In Progress' ? 'badge-progress' : 'badge-done');
-        const listTemuan = t.riwayat && t.riwayat.length > 0 
-            ? t.riwayat.map(r => `<div style="margin-bottom:2px;">• <span class="time-value">${r.time}</span>: ${r.note}</div>`).join("") 
-            : "<span style='color:#ccc'>Tidak ada detail temuan</span>";
+   function createCompactHTML(t) {
+    const badgeClass = t.status === 'Pending' ? 'badge-pending' : (t.status === 'In Progress' ? 'badge-progress' : 'badge-done');
+    
+    // --- LOGIKA PENENTUAN WARNA ---
+    // Mengecek apakah masalah mengandung kata 'BUILDING' atau pekerja berasal dari tim 'BUILDING'
+    const isBuilding = t.masalah.includes('BUILDING') || t.pekerja.includes('(BUILDING)');
+    const titleColor = isBuilding ? 'var(--meratus-red)' : 'var(--meratus-navy)';
+    
+    const listTemuan = t.riwayat && t.riwayat.length > 0 
+        ? t.riwayat.map(r => `<div style="margin-bottom:2px;">• <span class="time-value">${r.time}</span>: ${r.note}</div>`).join("") 
+        : "<span style='color:#ccc'>Tidak ada detail temuan</span>";
 
-        const startTimeStr = t.waktuMulai ? new Date(t.waktuMulai).toLocaleString('id-ID', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}).replace(/\./g, ':') : '-';
+    const startTimeStr = t.waktuMulai ? new Date(t.waktuMulai).toLocaleString('id-ID', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}).replace(/\./g, ':') : '-';
 
-        return `
-            <div class="compact-card">
-                <div class="compact-header">
-                    <div style="flex: 1;">
-                        <div style="font-weight: 800; color: var(--meratus-navy); font-size: 0.9rem; line-height:1.2;">${t.masalah}</div>
-                        <div style="font-size: 0.7rem; color: #666; margin-top:2px;">👷 ${t.pekerja}</div>
-                    </div>
-                    <span class="status-badge ${badgeClass}" style="font-size:0.6rem; padding: 2px 8px;">${t.status}</span>
+    return `
+        <div class="compact-card" style="border-left: 4px solid ${titleColor};">
+            <div class="compact-header">
+                <div style="flex: 1;">
+                    <div style="font-weight: 800; color: ${titleColor}; font-size: 0.9rem; line-height:1.2;">${t.masalah}</div>
+                    <div style="font-size: 0.7rem; color: #666; margin-top:2px;">👷 ${t.pekerja}</div>
                 </div>
-                <div class="compact-content">
-                    <div class="info-box box-temuan" style="margin-bottom:4px;">
-                        <strong style="font-size:0.6rem; color:#888; display:block;">DETAIL TEMUAN:</strong>
-                        <div style="font-size:0.75rem; line-height:1.4;">${listTemuan}</div>
-                    </div>
-                    ${t.status === 'Selesai' ? `<div class="info-box box-hasil"><strong style="font-size:0.6rem; color:#2e7d32;">HASIL:</strong> <span style="font-size:0.75rem;">${t.keteranganSelesai}</span></div>` : ''}
-                    <div class="compact-grid-info">
-                        <div><span class="time-label">MULAI:</span> <span class="time-value">${startTimeStr}</span></div>
-                        <div style="display:flex; justify-content:space-between;">
-                            <div><span class="time-label">DURASI:</span> <span id="timer-${t.id}" class="time-value">${t.status === 'Selesai' ? calculateDuration(t.waktuMulai, t.waktuSelesai) : '0j 0m 0s'}</span></div>
-                            <div style="display:flex; gap:8px;">
-                                ${t.fotoCek ? `<span onclick="viewImg('${t.fotoCek}')" style="cursor:pointer; color:var(--accent); font-size:0.7rem;">🖼️ CEK</span>` : ''}
-                                ${t.fotoSelesai ? `<span onclick="viewImg('${t.fotoSelesai}')" style="cursor:pointer; color:var(--success); font-size:0.7rem;">🖼️ HASIL</span>` : ''}
-                            </div>
+                <span class="status-badge ${badgeClass}" style="font-size:0.6rem; padding: 2px 8px;">${t.status}</span>
+            </div>
+            <div class="compact-content">
+                <div class="info-box box-temuan" style="margin-bottom:4px;">
+                    <strong style="font-size:0.6rem; color:#888; display:block;">DETAIL TEMUAN:</strong>
+                    <div style="font-size:0.75rem; line-height:1.4;">${listTemuan}</div>
+                </div>
+                ${t.status === 'Selesai' ? `<div class="info-box box-hasil"><strong style="font-size:0.6rem; color:#2e7d32;">HASIL:</strong> <span style="font-size:0.75rem;">${t.keteranganSelesai}</span></div>` : ''}
+                <div class="compact-grid-info">
+                    <div><span class="time-label">MULAI:</span> <span class="time-value">${startTimeStr}</span></div>
+                    <div style="display:flex; justify-content:space-between;">
+                        <div><span class="time-label">DURASI:</span> <span id="timer-${t.id}" class="time-value">${t.status === 'Selesai' ? calculateDuration(t.waktuMulai, t.waktuSelesai) : '0j 0m 0s'}</span></div>
+                        <div style="display:flex; gap:8px;">
+                            ${t.fotoCek ? `<span onclick="viewImg('${t.fotoCek}')" style="cursor:pointer; color:var(--accent); font-size:0.7rem;">🖼️ CEK</span>` : ''}
+                            ${t.fotoSelesai ? `<span onclick="viewImg('${t.fotoSelesai}')" style="cursor:pointer; color:var(--success); font-size:0.7rem;">🖼️ HASIL</span>` : ''}
                         </div>
                     </div>
                 </div>
-                <div style="display:flex; gap:4px; margin-top:8px; border-top: 1px solid #eee; padding-top:8px;">
-                    ${t.status === 'Pending' ? `<button class="btn-tool" style="flex:1; background:var(--meratus-navy); color:white;" onclick="updateStatus(${t.id}, 'In Progress')">MULAI</button>` : ''}
-                    ${t.status === 'In Progress' ? `<button class="btn-tool" style="flex:1; background:var(--meratus-red); color:white" onclick="openFinishModal(${t.id})">SELESAI</button>` : ''}
-                    <button class="btn-tool" style="width:35px; color:#ccc;" onclick="hapusData(${t.id})">🗑️</button>
-                </div>
-            </div>`;
-    }
+            </div>
+            <div style="display:flex; gap:4px; margin-top:8px; border-top: 1px solid #eee; padding-top:8px;">
+                ${t.status === 'Pending' ? `<button class="btn-tool" style="flex:1; background:var(--meratus-navy); color:white;" onclick="updateStatus(${t.id}, 'In Progress')">MULAI</button>` : ''}
+                ${t.status === 'In Progress' ? `<button class="btn-tool" style="flex:1; background:var(--meratus-red); color:white" onclick="openFinishModal(${t.id})">SELESAI</button>` : ''}
+                <button class="btn-tool" style="width:35px; color:#ccc;" onclick="hapusData(${t.id})">🗑️</button>
+            </div>
+        </div>`;
+}
 
     async function updateStatus(id, newStatus) {
         const updateData = { status: newStatus };
