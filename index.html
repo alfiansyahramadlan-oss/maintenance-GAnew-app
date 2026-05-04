@@ -592,11 +592,28 @@ function createItem(r) {
 }
 
 async function executeRequest(id, nama, masalah) {
-    document.getElementById('masalah').value = `[REQ: ${nama}] ${masalah}`;
-    // Simpan ID request sementara agar bisa dihapus nanti saat submit sukses
-    sessionStorage.setItem('pending_delete_id', id); 
-    switchTab('input', document.querySelectorAll('.nav-item')[1]);
-    // Baris hapusRequest sudah dibuang dari sini
+    try {
+        // Pastikan input form bersih sebelum diisi
+        document.getElementById('masalah').value = "";
+        
+        // Isi otomatis field masalah di tab Input
+        document.getElementById('masalah').value = `[REQ: ${nama}] ${masalah}`;
+        
+        // Simpan ID untuk dihapus nanti setelah submit sukses
+        sessionStorage.setItem('pending_delete_id', id.toString()); 
+        
+        // Pindah ke tab Input
+        const navItems = document.querySelectorAll('.nav-item');
+        if (navItems[1]) {
+            switchTab('input', navItems[1]);
+        }
+        
+        // Scroll ke atas agar user langsung melihat form input
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+        console.error("Error Eksekusi:", err);
+        alert("Gagal memproses eksekusi: " + err.message);
+    }
 }
 
     async function hapusRequest(id, reload = true) {
@@ -693,10 +710,8 @@ initPekerjaCheckboxes();
         document.getElementById('hasilCek').value = "";
     }
 
-    async function submitTask(status) {
+async function submitTask(status) {
     const m = document.getElementById('masalah').value;
-    
-    // Ambil semua pekerja yang dicentang
     const selectedPekerja = Array.from(document.querySelectorAll('input[name="pekerja-select"]:checked'))
                                  .map(cb => cb.value);
 
@@ -706,7 +721,7 @@ initPekerjaCheckboxes();
     const newTask = {
         id: Date.now(),
         masalah: m,
-        pekerja: selectedPekerja.join(", "), // Gabungkan nama dengan koma
+        pekerja: selectedPekerja.join(", "),
         status: status,
         riwayat: currentLogs,
         "fotoCek": base64Cek,
@@ -722,14 +737,20 @@ initPekerjaCheckboxes();
     if(error) {
         alert("Gagal simpan: " + error.message);
     } else {
-        // CEK APAKAH INI HASIL DARI EKSEKUSI REQUEST
+        // --- PERBAIKAN PENGHAPUSAN DISINI ---
         const requestId = sessionStorage.getItem('pending_delete_id');
         if(requestId) {
-            await _supabase.from('request_list').delete().eq('id', requestId);
+            // Hapus dari database request_list
+            const { error: delError } = await _supabase.from('request_list').delete().eq('id', requestId);
+            if(delError) console.warn("Gagal menghapus request lama:", delError.message);
+            
+            // Hapus dari memory browser
             sessionStorage.removeItem('pending_delete_id');
         }
-        alert("Data berhasil dikirim ke Cloud!");
-        location.reload();
+        
+        alert("Pekerjaan berhasil dimulai!");
+        // Refresh dashboard agar data terbaru muncul
+        location.reload(); 
     }
 }
 
